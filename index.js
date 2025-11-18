@@ -223,7 +223,8 @@ vipBot.onText(/\/verify (.+)/, (msg, match) => {
         `✓ التحليل المفصل\n` +
         `✓ التحديثات المباشرة\n` +
         `✓ الدعم الأولوية\n\n` +
-        `انضم لقناة VIP: ${VIP_CHANNEL_ID}\n\n` +
+        `💎 *انضم لقناة VIP الآن:*\n` +
+        `https://t.me/+eiWSPzmAmJY0Y2Q0\n\n` +
         `حظاً موفقاً! 🍀`;
 
       vipBot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
