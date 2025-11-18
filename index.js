@@ -4,6 +4,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const sqlite3 = require('sqlite3').verbose();
 const axios = require('axios');
+const http = require('http');
 
 // ============================================
 // CONFIGURATION
@@ -511,6 +512,28 @@ adminBot.on('polling_error', (error) => {
   console.error('Admin Bot polling error:', error);
 });
 
-console.log('🚀 Both bots are running successfully!');
-console.log('📱 VIP Bot: Handling subscriptions');
-console.log('🎯 Admin Bot: Managing predictions');
+// ============================================
+// HTTP SERVER (for Render port binding)
+// ============================================
+
+const PORT = process.env.PORT || 3000;
+
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({
+    status: 'running',
+    bots: {
+      vip: 'active',
+      admin: 'active'
+    },
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  }));
+});
+
+server.listen(PORT, () => {
+  console.log(`✅ HTTP server listening on port ${PORT}`);
+  console.log('🚀 Both bots are running successfully!');
+  console.log('📱 VIP Bot: Handling subscriptions');
+  console.log('🎯 Admin Bot: Managing predictions');
+});
