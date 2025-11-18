@@ -17,6 +17,11 @@ const VIP_CHANNEL_ID = process.env.VIP_CHANNEL_ID;
 const FREE_CHANNEL = process.env.FREE_CHANNEL;
 const AMMER_PAY_API_KEY = process.env.AMMER_PAY_API_KEY || 'your_ammer_pay_api_key';
 
+console.log('🔧 Configuration loaded:');
+console.log('Admin User ID:', ADMIN_USER_ID);
+console.log('VIP Channel:', VIP_CHANNEL_ID);
+console.log('Free Channel:', FREE_CHANNEL);
+
 // ============================================
 // DATABASE SETUP
 // ============================================
@@ -37,24 +42,10 @@ db.serialize(() => {
   // Predictions table
   db.run(`CREATE TABLE IF NOT EXISTS predictions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    match_name TEXT,
-    league TEXT,
-    prediction TEXT,
-    odds TEXT,
-    match_time TEXT,
-    analysis TEXT,
+    content TEXT,
     channel TEXT,
-    status TEXT DEFAULT 'pending',
+    message_id TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
-  )`);
-
-  // Results table
-  db.run(`CREATE TABLE IF NOT EXISTS results (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    prediction_id INTEGER,
-    result TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(prediction_id) REFERENCES predictions(id)
   )`);
 });
 
@@ -79,27 +70,27 @@ vipBot.onText(/\/start/, (msg) => {
       return;
     }
 
-    let message = `🎯 *Welcome to YallaBets VIP!*\n\n`;
+    let message = `🎯 *مرحباً بك في YallaBets VIP!*\n\n`;
     
     if (user && user.subscription_status === 'active') {
       const endDate = new Date(user.subscription_end_date);
-      message += `✅ *Your VIP Status:* Active\n`;
-      message += `📅 *Expires:* ${endDate.toLocaleDateString()}\n\n`;
-      message += `You have full access to premium predictions!\n\n`;
+      message += `✅ *حالة الاشتراك:* نشط\n`;
+      message += `📅 *ينتهي في:* ${endDate.toLocaleDateString('ar-SA')}\n\n`;
+      message += `لديك وصول كامل للتوقعات المميزة!\n\n`;
     } else {
-      message += `❌ *Your VIP Status:* Inactive\n\n`;
-      message += `🌟 *Subscribe to VIP for $20/month and get:*\n`;
-      message += `✓ 10-30 expert predictions per week\n`;
-      message += `✓ 85%+ win rate\n`;
-      message += `✓ Detailed analysis\n`;
-      message += `✓ Live updates\n`;
-      message += `✓ Priority support\n\n`;
+      message += `❌ *حالة الاشتراك:* غير نشط\n\n`;
+      message += `🌟 *اشترك في VIP مقابل $20/شهر واحصل على:*\n`;
+      message += `✓ 10-30 توقع احترافي أسبوعياً\n`;
+      message += `✓ نسبة نجاح 85%+\n`;
+      message += `✓ تحليل مفصل\n`;
+      message += `✓ تحديثات مباشرة\n`;
+      message += `✓ دعم أولوية\n\n`;
     }
 
-    message += `📱 *Commands:*\n`;
-    message += `/subscribe - Subscribe to VIP ($20/month)\n`;
-    message += `/status - Check subscription status\n`;
-    message += `/help - Get help`;
+    message += `📱 *الأوامر:*\n`;
+    message += `/subscribe - الاشتراك في VIP ($20/شهر)\n`;
+    message += `/status - التحقق من حالة الاشتراك\n`;
+    message += `/help - المساعدة`;
 
     vipBot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
   });
@@ -108,25 +99,24 @@ vipBot.onText(/\/start/, (msg) => {
 // VIP Bot: Subscribe command
 vipBot.onText(/\/subscribe/, (msg) => {
   const chatId = msg.chat.id;
-  const userId = msg.from.id;
 
-  const message = `💎 *Subscribe to YallaBets VIP*\n\n` +
-    `💰 *Price:* $20/month\n\n` +
-    `🌟 *What you get:*\n` +
-    `✓ 10-30 expert predictions weekly\n` +
-    `✓ 85%+ win rate\n` +
-    `✓ Detailed match analysis\n` +
-    `✓ Live updates & support\n\n` +
-    `📱 *To subscribe:*\n` +
-    `1. Click the button below to pay via Ammer Pay\n` +
-    `2. After payment, send /verify with your payment ID\n` +
-    `3. Get instant VIP access!\n\n` +
-    `💳 *Payment Link:* [Click here to pay](https://ammer.sa/pay/yallabets)`;
+  const message = `💎 *الاشتراك في YallaBets VIP*\n\n` +
+    `💰 *السعر:* $20/شهر\n\n` +
+    `🌟 *ما ستحصل عليه:*\n` +
+    `✓ 10-30 توقع احترافي أسبوعياً\n` +
+    `✓ نسبة نجاح 85%+\n` +
+    `✓ تحليل مفصل للمباريات\n` +
+    `✓ تحديثات مباشرة ودعم\n\n` +
+    `📱 *للاشتراك:*\n` +
+    `1. اضغط على الزر أدناه للدفع عبر Ammer Pay\n` +
+    `2. بعد الدفع، أرسل /verify مع رقم الدفع\n` +
+    `3. احصل على وصول VIP فوري!\n\n` +
+    `💳 *رابط الدفع:* [اضغط هنا للدفع](https://ammer.sa/pay/yallabets)`;
 
   const keyboard = {
     inline_keyboard: [
-      [{ text: '💳 Pay $20 via Ammer Pay', url: 'https://ammer.sa/pay/yallabets' }],
-      [{ text: '✅ I paid - Verify', callback_data: 'verify_payment' }]
+      [{ text: '💳 ادفع $20 عبر Ammer Pay', url: 'https://ammer.sa/pay/yallabets' }],
+      [{ text: '✅ دفعت - تحقق', callback_data: 'verify_payment' }]
     ]
   };
 
@@ -143,25 +133,25 @@ vipBot.onText(/\/status/, (msg) => {
 
   db.get('SELECT * FROM users WHERE user_id = ?', [userId], (err, user) => {
     if (err) {
-      vipBot.sendMessage(chatId, '❌ Error checking status. Please try again.');
+      vipBot.sendMessage(chatId, '❌ خطأ في التحقق من الحالة. حاول مرة أخرى.');
       return;
     }
 
-    let message = `📊 *Your VIP Status*\n\n`;
+    let message = `📊 *حالة اشتراكك في VIP*\n\n`;
 
     if (user && user.subscription_status === 'active') {
       const endDate = new Date(user.subscription_end_date);
       const daysLeft = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
       
-      message += `✅ *Status:* Active\n`;
-      message += `👤 *User ID:* ${userId}\n`;
-      message += `📅 *Expires:* ${endDate.toLocaleDateString()}\n`;
-      message += `⏰ *Days Left:* ${daysLeft} days\n\n`;
-      message += `Enjoy your premium predictions! 🎯`;
+      message += `✅ *الحالة:* نشط\n`;
+      message += `👤 *معرف المستخدم:* ${userId}\n`;
+      message += `📅 *ينتهي في:* ${endDate.toLocaleDateString('ar-SA')}\n`;
+      message += `⏰ *الأيام المتبقية:* ${daysLeft} يوم\n\n`;
+      message += `استمتع بالتوقعات المميزة! 🎯`;
     } else {
-      message += `❌ *Status:* Inactive\n\n`;
-      message += `Subscribe now to get premium predictions!\n`;
-      message += `Use /subscribe to get started.`;
+      message += `❌ *الحالة:* غير نشط\n\n`;
+      message += `اشترك الآن للحصول على توقعات مميزة!\n`;
+      message += `استخدم /subscribe للبدء.`;
     }
 
     vipBot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
@@ -172,14 +162,14 @@ vipBot.onText(/\/status/, (msg) => {
 vipBot.onText(/\/help/, (msg) => {
   const chatId = msg.chat.id;
 
-  const message = `📱 *YallaBets VIP Bot - Help*\n\n` +
-    `*Available Commands:*\n` +
-    `/start - Start the bot\n` +
-    `/subscribe - Subscribe to VIP ($20/month)\n` +
-    `/status - Check your subscription status\n` +
-    `/help - Show this help message\n\n` +
-    `*Need Support?*\n` +
-    `Contact: @yallabets_support`;
+  const message = `📱 *YallaBets VIP Bot - المساعدة*\n\n` +
+    `*الأوامر المتاحة:*\n` +
+    `/start - بدء البوت\n` +
+    `/subscribe - الاشتراك في VIP ($20/شهر)\n` +
+    `/status - التحقق من حالة اشتراكك\n` +
+    `/help - عرض هذه الرسالة\n\n` +
+    `*تحتاج مساعدة؟*\n` +
+    `تواصل: @yallabets_support`;
 
   vipBot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
 });
@@ -187,14 +177,13 @@ vipBot.onText(/\/help/, (msg) => {
 // VIP Bot: Callback query handler
 vipBot.on('callback_query', (query) => {
   const chatId = query.message.chat.id;
-  const userId = query.from.id;
 
   if (query.data === 'verify_payment') {
     vipBot.sendMessage(chatId, 
-      `✅ *Payment Verification*\n\n` +
-      `Please send your payment ID in this format:\n` +
+      `✅ *التحقق من الدفع*\n\n` +
+      `يرجى إرسال رقم الدفع بهذا التنسيق:\n` +
       `/verify PAYMENT_ID\n\n` +
-      `Example: /verify AMR123456`,
+      `مثال: /verify AMR123456`,
       { parse_mode: 'Markdown' }
     );
   }
@@ -221,21 +210,21 @@ vipBot.onText(/\/verify (.+)/, (msg, match) => {
     [userId, username, subscriptionEndDate.toISOString(), paymentId],
     (err) => {
       if (err) {
-        vipBot.sendMessage(chatId, '❌ Error activating subscription. Please contact support.');
+        vipBot.sendMessage(chatId, '❌ خطأ في تفعيل الاشتراك. يرجى التواصل مع الدعم.');
         console.error('Database error:', err);
         return;
       }
 
-      const message = `🎉 *Subscription Activated!*\n\n` +
-        `✅ Your VIP subscription is now active!\n` +
-        `📅 *Expires:* ${subscriptionEndDate.toLocaleDateString()}\n\n` +
-        `You now have access to:\n` +
-        `✓ Premium predictions\n` +
-        `✓ Detailed analysis\n` +
-        `✓ Live updates\n` +
-        `✓ Priority support\n\n` +
-        `Join our VIP channel: ${VIP_CHANNEL_ID}\n\n` +
-        `Good luck! 🍀`;
+      const message = `🎉 *تم تفعيل الاشتراك!*\n\n` +
+        `✅ اشتراكك في VIP نشط الآن!\n` +
+        `📅 *ينتهي في:* ${subscriptionEndDate.toLocaleDateString('ar-SA')}\n\n` +
+        `لديك الآن وصول إلى:\n` +
+        `✓ التوقعات المميزة\n` +
+        `✓ التحليل المفصل\n` +
+        `✓ التحديثات المباشرة\n` +
+        `✓ الدعم الأولوية\n\n` +
+        `انضم لقناة VIP: ${VIP_CHANNEL_ID}\n\n` +
+        `حظاً موفقاً! 🍀`;
 
       vipBot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
     }
@@ -243,15 +232,15 @@ vipBot.onText(/\/verify (.+)/, (msg, match) => {
 });
 
 // ============================================
-// ADMIN BOT - Predictions Management
+// ADMIN BOT - Simple Message Forwarding
 // ============================================
 
 const adminBot = new TelegramBot(ADMIN_BOT_TOKEN, { polling: true });
 
 console.log('✅ Admin Bot started successfully!');
 
-// Admin Bot: Temporary storage for prediction creation
-const tempPredictions = {};
+// Admin Bot: Temporary storage for pending messages
+const pendingMessages = {};
 
 // Admin Bot: Start command
 adminBot.onText(/\/start/, (msg) => {
@@ -259,188 +248,18 @@ adminBot.onText(/\/start/, (msg) => {
   const userId = msg.from.id;
 
   if (userId !== ADMIN_USER_ID) {
-    adminBot.sendMessage(chatId, '❌ Unauthorized. This bot is for admin use only.');
+    adminBot.sendMessage(chatId, '❌ غير مصرح. هذا البوت للإدارة فقط.');
     return;
   }
 
   const message = `🎯 *YallaBets Admin Bot*\n\n` +
-    `Welcome Admin! Manage your predictions here.\n\n` +
-    `*Commands:*\n` +
-    `/create - Create new prediction\n` +
-    `/result - Add result to prediction\n` +
-    `/stats - View statistics\n` +
-    `/list - List recent predictions\n` +
-    `/help - Show help`;
+    `مرحباً أدمن! أرسل أي رسالة (نص، صورة، فيديو) وسأسألك أين تريد نشرها.\n\n` +
+    `*الأوامر:*\n` +
+    `/start - بدء البوت\n` +
+    `/stats - عرض الإحصائيات\n` +
+    `/help - المساعدة`;
 
   adminBot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
-});
-
-// Admin Bot: Create prediction
-adminBot.onText(/\/create/, (msg) => {
-  const chatId = msg.chat.id;
-  const userId = msg.from.id;
-
-  if (userId !== ADMIN_USER_ID) {
-    adminBot.sendMessage(chatId, '❌ Unauthorized.');
-    return;
-  }
-
-  tempPredictions[chatId] = { step: 1 };
-
-  adminBot.sendMessage(chatId, 
-    `📝 *Create New Prediction - Step 1/6*\n\n` +
-    `Enter the match name:\n` +
-    `Example: Chelsea vs Arsenal`,
-    { parse_mode: 'Markdown' }
-  );
-});
-
-// Admin Bot: Handle prediction creation steps
-adminBot.on('message', (msg) => {
-  const chatId = msg.chat.id;
-  const userId = msg.from.id;
-  const text = msg.text;
-
-  if (userId !== ADMIN_USER_ID || !tempPredictions[chatId] || text.startsWith('/')) {
-    return;
-  }
-
-  const pred = tempPredictions[chatId];
-
-  switch (pred.step) {
-    case 1: // Match name
-      pred.match_name = text;
-      pred.step = 2;
-      adminBot.sendMessage(chatId, 
-        `📝 *Step 2/6*\n\nEnter the league:\nExample: Premier League`,
-        { parse_mode: 'Markdown' }
-      );
-      break;
-
-    case 2: // League
-      pred.league = text;
-      pred.step = 3;
-      adminBot.sendMessage(chatId, 
-        `📝 *Step 3/6*\n\nEnter your prediction:\nExample: Chelsea to Win`,
-        { parse_mode: 'Markdown' }
-      );
-      break;
-
-    case 3: // Prediction
-      pred.prediction = text;
-      pred.step = 4;
-      adminBot.sendMessage(chatId, 
-        `📝 *Step 4/6*\n\nEnter the odds:\nExample: 2.10`,
-        { parse_mode: 'Markdown' }
-      );
-      break;
-
-    case 4: // Odds
-      pred.odds = text;
-      pred.step = 5;
-      adminBot.sendMessage(chatId, 
-        `📝 *Step 5/6*\n\nEnter match time:\nExample: Nov 18, 20:00 GMT`,
-        { parse_mode: 'Markdown' }
-      );
-      break;
-
-    case 5: // Match time
-      pred.match_time = text;
-      pred.step = 6;
-      adminBot.sendMessage(chatId, 
-        `📝 *Step 6/6*\n\nEnter analysis (optional, or type 'skip'):\nExample: Chelsea has strong form...`,
-        { parse_mode: 'Markdown' }
-      );
-      break;
-
-    case 6: // Analysis
-      pred.analysis = text === 'skip' ? '' : text;
-      pred.step = 7;
-
-      const keyboard = {
-        inline_keyboard: [
-          [{ text: '🆓 Free Channel Only', callback_data: 'publish_free' }],
-          [{ text: '💎 VIP Channel Only', callback_data: 'publish_vip' }],
-          [{ text: '📢 Both Channels', callback_data: 'publish_both' }]
-        ]
-      };
-
-      adminBot.sendMessage(chatId, 
-        `✅ *Prediction Ready!*\n\n` +
-        `📊 *Match:* ${pred.match_name}\n` +
-        `🏆 *League:* ${pred.league}\n` +
-        `🎯 *Prediction:* ${pred.prediction}\n` +
-        `💰 *Odds:* ${pred.odds}\n` +
-        `⏰ *Time:* ${pred.match_time}\n` +
-        `📝 *Analysis:* ${pred.analysis || 'None'}\n\n` +
-        `Where do you want to publish?`,
-        { parse_mode: 'Markdown', reply_markup: keyboard }
-      );
-      break;
-  }
-});
-
-// Admin Bot: Handle publish callbacks
-adminBot.on('callback_query', (query) => {
-  const chatId = query.message.chat.id;
-  const userId = query.from.id;
-
-  if (userId !== ADMIN_USER_ID) {
-    adminBot.answerCallbackQuery(query.id, { text: '❌ Unauthorized' });
-    return;
-  }
-
-  const pred = tempPredictions[chatId];
-  if (!pred || pred.step !== 7) {
-    adminBot.answerCallbackQuery(query.id);
-    return;
-  }
-
-  let channel = '';
-  if (query.data === 'publish_free') channel = 'free';
-  else if (query.data === 'publish_vip') channel = 'vip';
-  else if (query.data === 'publish_both') channel = 'both';
-
-  // Save to database
-  db.run(
-    `INSERT INTO predictions (match_name, league, prediction, odds, match_time, analysis, channel) 
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [pred.match_name, pred.league, pred.prediction, pred.odds, pred.match_time, pred.analysis, channel],
-    function(err) {
-      if (err) {
-        adminBot.sendMessage(chatId, '❌ Error saving prediction.');
-        console.error('Database error:', err);
-        return;
-      }
-
-      const predictionId = this.lastID;
-
-      // Format message
-      const message = `⚽️ *${pred.match_name}*\n\n` +
-        `🏆 *League:* ${pred.league}\n` +
-        `🎯 *Prediction:* ${pred.prediction}\n` +
-        `💰 *Odds:* ${pred.odds}\n` +
-        `⏰ *Match Time:* ${pred.match_time}\n\n` +
-        (pred.analysis ? `📊 *Analysis:*\n${pred.analysis}\n\n` : '') +
-        `🍀 Good luck!`;
-
-      // Publish to channels
-      if (channel === 'free' || channel === 'both') {
-        adminBot.sendMessage(FREE_CHANNEL, message, { parse_mode: 'Markdown' })
-          .catch(err => console.error('Error posting to free channel:', err));
-      }
-
-      if (channel === 'vip' || channel === 'both') {
-        adminBot.sendMessage(VIP_CHANNEL_ID, message, { parse_mode: 'Markdown' })
-          .catch(err => console.error('Error posting to VIP channel:', err));
-      }
-
-      adminBot.sendMessage(chatId, `✅ Prediction published successfully! (ID: ${predictionId})`);
-      delete tempPredictions[chatId];
-    }
-  );
-
-  adminBot.answerCallbackQuery(query.id);
 });
 
 // Admin Bot: Stats command
@@ -449,34 +268,30 @@ adminBot.onText(/\/stats/, (msg) => {
   const userId = msg.from.id;
 
   if (userId !== ADMIN_USER_ID) {
-    adminBot.sendMessage(chatId, '❌ Unauthorized.');
+    adminBot.sendMessage(chatId, '❌ غير مصرح.');
     return;
   }
 
-  db.all(
-    `SELECT 
-      COUNT(*) as total,
-      SUM(CASE WHEN status = 'won' THEN 1 ELSE 0 END) as wins,
-      SUM(CASE WHEN status = 'lost' THEN 1 ELSE 0 END) as losses
-     FROM predictions`,
-    (err, rows) => {
-      if (err) {
-        adminBot.sendMessage(chatId, '❌ Error fetching stats.');
+  db.get('SELECT COUNT(*) as total FROM predictions', (err, row) => {
+    if (err) {
+      adminBot.sendMessage(chatId, '❌ خطأ في جلب الإحصائيات.');
+      return;
+    }
+
+    db.get('SELECT COUNT(*) as vip_count FROM users WHERE subscription_status = "active"', (err2, row2) => {
+      if (err2) {
+        adminBot.sendMessage(chatId, '❌ خطأ في جلب الإحصائيات.');
         return;
       }
 
-      const stats = rows[0];
-      const winRate = stats.total > 0 ? ((stats.wins / stats.total) * 100).toFixed(1) : 0;
-
-      const message = `📊 *Statistics*\n\n` +
-        `📈 *Total Predictions:* ${stats.total}\n` +
-        `✅ *Wins:* ${stats.wins}\n` +
-        `❌ *Losses:* ${stats.losses}\n` +
-        `🎯 *Win Rate:* ${winRate}%`;
+      const message = `📊 *الإحصائيات*\n\n` +
+        `📈 *إجمالي المنشورات:* ${row.total}\n` +
+        `💎 *المشتركون النشطون:* ${row2.vip_count}\n` +
+        `💰 *الإيرادات الشهرية:* $${row2.vip_count * 20}`;
 
       adminBot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
-    }
-  );
+    });
+  });
 });
 
 // Admin Bot: Help command
@@ -485,19 +300,121 @@ adminBot.onText(/\/help/, (msg) => {
   const userId = msg.from.id;
 
   if (userId !== ADMIN_USER_ID) {
-    adminBot.sendMessage(chatId, '❌ Unauthorized.');
+    adminBot.sendMessage(chatId, '❌ غير مصرح.');
     return;
   }
 
-  const message = `📱 *Admin Bot - Help*\n\n` +
-    `*Commands:*\n` +
-    `/create - Create new prediction\n` +
-    `/result <id> <won/lost> - Add result\n` +
-    `/stats - View statistics\n` +
-    `/list - List recent predictions\n` +
-    `/help - Show this help`;
+  const message = `📱 *Admin Bot - المساعدة*\n\n` +
+    `*كيفية الاستخدام:*\n` +
+    `1. أرسل أي رسالة (نص، صورة، فيديو)\n` +
+    `2. اختر أين تريد نشرها:\n` +
+    `   • 🆓 Free فقط\n` +
+    `   • 💎 VIP فقط\n` +
+    `   • 📢 الاثنين معاً\n` +
+    `3. سيتم النشر تلقائياً!\n\n` +
+    `*الأوامر:*\n` +
+    `/stats - عرض الإحصائيات\n` +
+    `/help - المساعدة`;
 
   adminBot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+});
+
+// Admin Bot: Handle any message (text, photo, video, etc.)
+adminBot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+
+  // Ignore if not admin or if it's a command
+  if (userId !== ADMIN_USER_ID || msg.text?.startsWith('/')) {
+    return;
+  }
+
+  // Store the message
+  pendingMessages[chatId] = msg;
+
+  // Ask where to publish
+  const keyboard = {
+    inline_keyboard: [
+      [{ text: '🆓 Free فقط', callback_data: 'publish_free' }],
+      [{ text: '💎 VIP فقط', callback_data: 'publish_vip' }],
+      [{ text: '📢 الاثنين معاً', callback_data: 'publish_both' }]
+    ]
+  };
+
+  adminBot.sendMessage(chatId, 
+    `📢 *أين تريد نشر هذه الرسالة؟*`,
+    { parse_mode: 'Markdown', reply_markup: keyboard }
+  );
+});
+
+// Admin Bot: Handle publish callbacks
+adminBot.on('callback_query', (query) => {
+  const chatId = query.message.chat.id;
+  const userId = query.from.id;
+
+  if (userId !== ADMIN_USER_ID) {
+    adminBot.answerCallbackQuery(query.id, { text: '❌ غير مصرح' });
+    return;
+  }
+
+  const originalMsg = pendingMessages[chatId];
+  if (!originalMsg) {
+    adminBot.answerCallbackQuery(query.id, { text: '❌ لم يتم العثور على الرسالة' });
+    return;
+  }
+
+  let channel = '';
+  if (query.data === 'publish_free') channel = 'free';
+  else if (query.data === 'publish_vip') channel = 'vip';
+  else if (query.data === 'publish_both') channel = 'both';
+
+  // Function to forward message
+  const forwardMessage = (targetChannel) => {
+    if (originalMsg.text) {
+      return adminBot.sendMessage(targetChannel, originalMsg.text);
+    } else if (originalMsg.photo) {
+      const photo = originalMsg.photo[originalMsg.photo.length - 1].file_id;
+      return adminBot.sendPhoto(targetChannel, photo, { caption: originalMsg.caption || '' });
+    } else if (originalMsg.video) {
+      return adminBot.sendVideo(targetChannel, originalMsg.video.file_id, { caption: originalMsg.caption || '' });
+    } else if (originalMsg.document) {
+      return adminBot.sendDocument(targetChannel, originalMsg.document.file_id, { caption: originalMsg.caption || '' });
+    }
+  };
+
+  // Publish to channels
+  const promises = [];
+  
+  if (channel === 'free' || channel === 'both') {
+    promises.push(forwardMessage(FREE_CHANNEL).catch(err => {
+      console.error('Error posting to free channel:', err);
+      return null;
+    }));
+  }
+
+  if (channel === 'vip' || channel === 'both') {
+    promises.push(forwardMessage(VIP_CHANNEL_ID).catch(err => {
+      console.error('Error posting to VIP channel:', err);
+      return null;
+    }));
+  }
+
+  Promise.all(promises).then(() => {
+    // Save to database
+    const content = originalMsg.text || originalMsg.caption || '[Media]';
+    db.run(
+      `INSERT INTO predictions (content, channel) VALUES (?, ?)`,
+      [content, channel],
+      (err) => {
+        if (err) console.error('Database error:', err);
+      }
+    );
+
+    adminBot.sendMessage(chatId, `✅ تم النشر بنجاح!`);
+    delete pendingMessages[chatId];
+  });
+
+  adminBot.answerCallbackQuery(query.id);
 });
 
 // ============================================
@@ -505,11 +422,11 @@ adminBot.onText(/\/help/, (msg) => {
 // ============================================
 
 vipBot.on('polling_error', (error) => {
-  console.error('VIP Bot polling error:', error);
+  console.error('VIP Bot polling error:', error.message);
 });
 
 adminBot.on('polling_error', (error) => {
-  console.error('Admin Bot polling error:', error);
+  console.error('Admin Bot polling error:', error.message);
 });
 
 // ============================================
@@ -535,5 +452,5 @@ server.listen(PORT, () => {
   console.log(`✅ HTTP server listening on port ${PORT}`);
   console.log('🚀 Both bots are running successfully!');
   console.log('📱 VIP Bot: Handling subscriptions');
-  console.log('🎯 Admin Bot: Managing predictions');
+  console.log('🎯 Admin Bot: Managing posts');
 });
